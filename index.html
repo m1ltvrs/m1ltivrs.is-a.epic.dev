@@ -1,12 +1,89 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <title>multivrsx</title>
-    <meta charset="UTF-8" />
-  </head>
-  <body>
-    <h1>Welcome to multivrsx.is-a.dev</h1>
-    <p>This is your ops-grade homepage.</p>
-  </body>
+<head>
+  <title>m1ltivrsx</title>
+  <meta charset="UTF-8" />
+  <style>
+    body {
+      background: url('snow.gif') no-repeat center center fixed;
+      background-size: cover;
+      color: white;
+      font-family: monospace;
+      text-align: center;
+      padding-top: 50px;
+    }
+
+    #pfp {
+      width: 150px;
+    }
+
+    .bounce {
+      animation: bounce 1s infinite;
+    }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-20px); }
+    }
+
+    .intro {
+      margin-top: 20px;
+      font-size: 1.2em;
+    }
+
+    .dev-stack {
+      margin-top: 10px;
+      font-weight: bold;
+    }
+
+    .description {
+      margin-top: 15px;
+      font-style: italic;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    audio {
+      margin: 20px;
+    }
+  </style>
+</head>
+<body>
+  <img id="pfp" src="yingyang.png" alt="Yin Yang PFP" />
+
+  <div class="intro">
+    Welcome to the m1ltivrsx<br>
+    ops identity deployed.<br>
+    Saga begins
+  </div>
+
+  <div class="dev-stack">
+    Developer – HTML – CSS – JavaScript
+  </div>
+
+  <div class="description">
+    This is my first large project. I've worked on a Minecraft knockoff that should be in my repositories.
+  </div>
+
+  <audio id="track1" controls src="track1.mp3"></audio>
+  <audio id="track2" controls src="track2.mp3"></audio>
+
+  <script>
+    const pfp = document.getElementById('pfp');
+    const tracks = [document.getElementById('track1'), document.getElementById('track2')];
+
+    function updateBounce() {
+      const anyPlaying = tracks.some(track => !track.paused);
+      pfp.classList.toggle('bounce', anyPlaying);
+    }
+
+    tracks.forEach(track => {
+      track.addEventListener('play', updateBounce);
+      track.addEventListener('pause', updateBounce);
+      track.addEventListener('ended', updateBounce);
+    });
+  </script>
+</body>
 </html>
 
