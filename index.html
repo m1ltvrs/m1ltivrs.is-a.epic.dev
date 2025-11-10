@@ -104,13 +104,6 @@
       height: 56px;
       font-size: 1.6rem;
     }
-
-    /* Native player — full width, active */
-    #audioPlayer {
-      width: 100%;
-      max-width: 600px;
-      height: 42px;
-    }
   </style>
 </head>
 <body>
@@ -125,24 +118,21 @@
     </div>
   </div>
 
-  <!-- MUSIC PLAYER — EXACTLY MY LAYOUT -->
+  <!-- MUSIC PLAYER — YOUR LAYOUT, NO NATIVE AUDIO -->
   <div class="music-player">
     <div class="track-info">
       <span>Now Playing:</span>
-      <span ID="track-name">Track 1 – Sonic Entry</span>
-      <span ID="track-time">– 0:00</span>
+      <span id="track-name">Track 1 – Sonic Entry</span>
+      <span id="track-time">– 0:00</span>
     </div>
 
     <div class="controls">
       <button id="prevBtn" title="Previous">Prev</button>
       <button id="rewindBtn" title="Rewind 10s">Rewind</button>
-      <button id="playPauseBtn" class="play-pause" title="Play">Play</button>
+      <button id="playPauseBtn" class="play-pause">Play</button>
       <button id="ffwdBtn" title="Fast-forward 10s">FF</button>
       <button id="nextBtn" title="Next">Next</button>
     </div>
-
-    <!-- Native player — will be loaded properly -->
-    <audio id="audioPlayer" controls></audio>
   </div>
 
   <script>
@@ -151,7 +141,7 @@
       { name: 'Track 2 – Tactical Pulse',src: 'track2.mp3' }
     ];
     let currentIndex = 0;
-    let audio = null;
+    let audio = new Audio();
 
     const trackNameEl  = document.getElementById('track-name');
     const trackTimeEl  = document.getElementById('track-time');
@@ -160,7 +150,6 @@
     const nextBtn      = document.getElementById('nextBtn');
     const rewindBtn    = document.getElementById('rewindBtn');
     const ffwdBtn      = document.getElementById('ffwdBtn');
-    const nativePlayer = document.getElementById('audioPlayer');
 
     const formatTime = (sec) => {
       const m = Math.floor(sec / 60);
@@ -172,39 +161,36 @@
       currentIndex = (index + playlist.length) % playlist.length;
       const track = playlist[currentIndex];
 
-      if (audio) audio.pause();
-
-      audio = new Audio(track.src);
-      audio.preload = 'metadata';
+      audio.src = track.src;
+      audio.load(); // Force load
 
       trackNameEl.textContent = track.name;
       trackTimeEl.textContent = '– 0:00';
       playPauseBtn.textContent = 'Play';
 
-      // FIX: Set src + load() on native player
-      nativePlayer.src = track.src;
-      nativePlayer.load();  // This activates the play button!
+      audio.onloadedmetadata = () => {
+        // Ready to play
+      };
 
-      audio.addEventListener('timeupdate', () => {
+      audio.ontimeupdate = () => {
         trackTimeEl.textContent = `– ${formatTime(audio.currentTime)}`;
-      });
+      };
 
-      audio.addEventListener('ended', () => {
+      audio.onended = () => {
         playPauseBtn.textContent = 'Play';
         loadNext();
-      });
+      };
 
-      audio.addEventListener('play', () => playPauseBtn.textContent = 'Pause');
-      audio.addEventListener('pause', () => playPauseBtn.textContent = 'Play');
-
-      // Sync native player
-      nativePlayer.addEventListener('play', () => playPauseBtn.textContent = 'Pause');
-      nativePlayer.addEventListener('pause', () => playPauseBtn.textContent = 'Play');
+      audio.onplay = () => playPauseBtn.textContent = 'Pause';
+      audio.onpause = () => playPauseBtn.textContent = 'Play';
     };
 
     const togglePlayPause = () => {
       if (audio.paused) {
-        audio.play().catch(() => nativePlayer.play());
+        audio.play().catch(err => {
+          console.log("Play blocked:", err);
+          alert("Click again to play (mobile policy)");
+        });
       } else {
         audio.pause();
       }
@@ -212,8 +198,8 @@
 
     const loadPrev = () => loadTrack(currentIndex - 1);
     const loadNext = () => loadTrack(currentIndex + 1);
-    const rewind = () => { if (audio) audio.currentTime = Math.max(0, audio.currentTime - 10); };
-    const ffwd   = () => { if (audio) audio.currentTime = Math.min(audio.duration || 0, audio.currentTime + 10); };
+    const rewind = () => { audio.currentTime = Math.max(0, audio.currentTime - 10); };
+    const ffwd   = () => { audio.currentTime = Math.min(audio.duration || 0, audio.currentTime + 10); };
 
     playPauseBtn.addEventListener('click', togglePlayPause);
     prevBtn.addEventListener('click', loadPrev);
@@ -221,12 +207,12 @@
     rewindBtn.addEventListener('click', rewind);
     ffwdBtn.addEventListener('click', ffwd);
 
-    // INITIAL LOAD — play button now active
+    // INITIAL LOAD
     loadTrack(0);
 
-    // Mobile unlock
+    // UNLOCK AUDIO ON FIRST CLICK
     document.body.addEventListener('click', function unlock() {
-      new Audio().play().catch(() => {});
+      audio.play().catch(() => {});
       document.body.removeEventListener('click', unlock);
     }, { once: true });
   </script>
