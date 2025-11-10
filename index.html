@@ -1,97 +1,117 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>@m1ltivrsx</title>
-  <link rel="icon" href="yingyang.png" type="image/png">
+  <link rel="icon" href="yingyang.png" type="image/png" />
   <style>
     body {
-      margin: 0; padding: 0;
-      background: url('snow.gif') center/cover fixed;
+      margin: 0;
+      padding: 0;
+      background: url('snow.gif') no-repeat center center fixed;
+      background-size: cover;
       font-family: 'Segoe UI', sans-serif;
       color: white;
-      display: flex; flex-direction: column; align-items: center;
-      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
     .profile {
       margin-top: 100px;
-      background: rgba(0,0,0,0.6);
-      padding: 30px; border-radius: 15px;
-      text-align: center; width: 90%; max-width: 500px;
-    }
-    .avatar { width: 100px; border-radius: 50%; margin-bottom: 15px; }
-    .name { font-size: 2em; font-weight: bold; }
-
-    .now-playing {
-      position: fixed; bottom: 0; left: 0; width: 100%;
-      background: rgba(0,0,0,0.9); padding: 20px;
+      background: rgba(0, 0, 0, 0.6);
+      padding: 30px;
+      border-radius: 15px;
       text-align: center;
+      width: 90%;
+      max-width: 500px;
     }
-    .now-playing h3 {
-      margin: 0 0 10px 0; font-size: 1.1em;
+    .avatar {
+      width: 100px;
+      border-radius: 50%;
+      margin-bottom: 15px;
     }
-    .now-playing audio {
-      width: 100%; height: 50px; margin-top: 10px;
-    }
-    .file-picker {
-      margin: 15px 0;
-      color: #0ff;
+    .name {
+      font-size: 2em;
       font-weight: bold;
     }
-    input[type="file"] {
+    .description {
+      margin-top: 10px;
+      font-size: 1em;
+    }
+
+    /* Button Styles */
+    .btn {
+      background: rgba(255, 255, 255, 0.15);
+      border: none;
       color: white;
-      background: rgba(255,255,255,0.1);
-      padding: 8px;
-      border-radius: 6px;
+      padding: 12px 24px;
+      margin: 8px;
+      border-radius: 8px;
+      font-size: 1em;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    }
+    .btn:hover {
+      background: rgba(255, 255, 255, 0.3);
+      transform: translateY(-1px);
+    }
+    .btn:active {
+      transform: translateY(1px);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
     }
   </style>
 </head>
 <body>
-
   <div class="profile">
-    <img src="yingyang.png" alt="Avatar" class="avatar">
+    <img src="yingyang.png" alt="Avatar" class="avatar" />
     <div class="name">@m1ltivrsx</div>
     <div class="description">
-      Tactical deployments.<br>
-      HTML, CSS, JavaScript.<br>
-      Inspired by VOUCAN’s legacy—timestamped.
-    </div>
-  </div>
-
-  <!-- FULL-SIZE AUDIO PLAYER -->
-  <div class="now-playing">
-    <h3>Now Playing: <span id="song-name">Choose a song below</span></h3>
-
-    <!-- FILE PICKER -->
-    <div class="file-picker">
-      <input type="file" id="audioFile" accept="audio/*">
+      Tactical deployments.<br />
+      HTML, CSS, JavaScript.<br />
+      Inspired by VOUCAN’s legacy—this saga is timestamped.
     </div>
 
-    <!-- THE ACTUAL PLAYER -->
-    <audio id="player" controls>
-      Your browser does not support audio.
-    </audio>
+    <!-- Interactive Buttons with Click Sound -->
+    <button class="btn" data-sound="hover">Hover Me</button>
+    <button class="btn" data-sound="click">Click Me</button>
+    <button class="btn" data-sound="both">Both</button>
   </div>
 
-  <!-- NO JAVASCRIPT NEEDED? YES! BUT THIS TINY BIT MAKES IT EASY -->
+  <!-- Hidden Audio for Click Sound -->
+  <audio id="clickSound" src="https://assets.mixkit.co/sfx/preview/mixkit-quick-positive-click-3180.mp3" preload="auto"></audio>
+
   <script>
-    // This runs ONLY to connect file picker → player
-    // If JS is off, user can still drag file into browser
-    document.getElementById('audioFile').addEventListener('change', function(e) {
-      const file = e.target.files[0];
-      if (!file) return;
+    // Play sound on hover or click
+    const clickSound = document.getElementById('clickSound');
+    const buttons = document.querySelectorAll('.btn');
 
-      const url = URL.createObjectURL(file);
-      const player = document.getElementById('player');
-      const name = document.getElementById('song-name');
+    buttons.forEach(btn => {
+      const trigger = btn.dataset.sound;
 
-      player.src = url;
-      name.textContent = file.name;
-      player.play().catch(() => {
-        alert("Click Play to start!");
-      });
+      // Hover sound
+      if (trigger === 'hover' || trigger === 'both') {
+        btn.addEventListener('mouseenter', () => {
+          clickSound.currentTime = 0;
+          clickSound.play().catch(() => {});
+        });
+      }
+
+      // Click sound
+      if (trigger === 'click' || trigger === 'both') {
+        btn.addEventListener('click', () => {
+          clickSound.currentTime = 0;
+          clickSound.play().catch(() => {});
+        });
+      }
     });
-  </script>
 
+    // Unlock audio on first user interaction (for mobile)
+    document.body.addEventListener('click', function unlockAudio() {
+      clickSound.play().then(() => clickSound.pause()).catch(() => {});
+      document.body.removeEventListener('click', unlockAudio);
+    }, { once: true });
+  </script>
 </body>
 </html>
