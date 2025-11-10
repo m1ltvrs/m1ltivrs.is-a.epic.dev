@@ -15,8 +15,8 @@
       display: flex;
       flex-direction: column;
       align-items: center;
+      min-height: 100vh;
     }
-
     .profile {
       margin-top: 100px;
       background: rgba(0, 0, 0, 0.6);
@@ -26,42 +26,59 @@
       width: 90%;
       max-width: 500px;
     }
+    .avatar {width: 100px; border-radius: 50%; margin-bottom: 15px;}
+    .name {font-size: 2em; font-weight: bold;}
+    .description {margin-top: 10px; font-size: 1em;}
 
-    .avatar {
-      width: 100px;
-      border-radius: 50%;
-      margin-bottom: 15px;
-    }
-
-    .name {
-      font-size: 2em;
-      font-weight: bold;
-    }
-
-    .description {
-      margin-top: 10px;
-      font-size: 1em;
-    }
-
+    /* ---------- NOW PLAYING BAR ---------- */
     .now-playing {
       position: fixed;
       bottom: 0;
+      left: 0;
       width: 100%;
-      background: rgba(0, 0, 0, 0.85);
-      padding: 10px;
-      font-size: 0.9em;
+      background: rgba(0,0,0,0.85);
+      padding: 12px 8px;
       display: flex;
-      justify-content: center;
+      flex-direction: column;
+      gap: 8px;
       align-items: center;
-      gap: 10px;
+      font-size: 0.95em;
     }
-
-    .now-playing span {
-      white-space: nowrap;
+    .track-info {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      width: 100%;
+      max-width: 600px;
     }
+    .track-info span {white-space: nowrap; flex-shrink: 0;}
+    #track-name {flex: 1; overflow: hidden; text-overflow: ellipsis;}
 
+    /* ---------- PLAYER CONTROLS ---------- */
+    .player-controls {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      max-width: 600px;
+      gap: 8px;
+    }
+    .player-controls button {
+      background: rgba(255,255,255,0.15);
+      border: none;
+      color: white;
+      font-size: 1.2rem;
+      padding: 6px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .player-controls button:hover {background: rgba(255,255,255,0.3);}
+    .player-controls button:active {transform: scale(0.95);}
+
+    /* Full-width native audio element (still styled nicely) */
     audio {
-      display: none;
+      width: 100%;
+      height: 38px;               /* matches most mobile browsers */
     }
   </style>
 </head>
@@ -71,55 +88,112 @@
     <img src="yingyang.png" alt="Avatar" class="avatar" />
     <div class="name">@m1ltivrsx</div>
     <div class="description">
-      Tactical deployments.  
-      HTML, CSS, JavaScript.  
-      Inspired by VOUCAN’s legacy—this saga is timestamped.
+      Tactical deployments.<br>
+      HTML, CSS, JavaScript.<br>
+      Inspired by VOUCAN’s legacy—timestamped.
     </div>
   </div>
 
-  <!-- Hidden audio players -->
-  <audio id="track1" src="track1.mp3"></audio>
-  <audio id="track2" src="track2.mp3"></audio>
+  <!-- ---------- HIDDEN AUDIO ELEMENTS ---------- -->
+  <audio id="track1" src="track1.mp3" preload="metadata"></audio>
+  <audio id="track2" src="track2.mp3" preload="metadata"></audio>
 
-  <!-- Now Playing bar -->
+  <!-- ---------- NOW PLAYING BAR ---------- -->
   <div class="now-playing">
-    <span>🎵 Now Playing:</span>
-    <span id="track-name">None</span>
-    <span id="track-time">– 0:00</span>
+    <div class="track-info">
+      <span>Now Playing:</span>
+      <span id="track-name">None</span>
+      <span id="track-time">– 0:00</span>
+    </div>
+
+    <div class="player-controls">
+      <button id="prevBtn" title="Previous">⏮</button>
+      <button id="rewindBtn" title="Rewind 10 s">⏪</button>
+      <button id="playPauseBtn" title="Play / Pause">▶</button>
+      <button id="ffwdBtn" title="Fast-forward 10 s">⏩</button>
+      <button id="nextBtn" title="Next">⏭</button>
+    </div>
+
+    <!-- Visible native player (optional – you can hide it if you only want buttons) -->
+    <audio id="visiblePlayer" controls style="display:none;"></audio>
   </div>
 
   <script>
-    const tracks = [
-      { id: 'track1', name: 'Track 1 – Sonic Entry' },
-      { id: 'track2', name: 'Track 2 – Tactical Pulse' }
+    /* ---------- DATA ---------- */
+    const playlist = [
+      { id: 'track1', name: 'Track 1 – Sonic Entry',   src: 'track1.mp3' },
+      { id: 'track2', name: 'Track 2 – Tactical Pulse', src: 'track2.mp3' }
     ];
+    let currentIdx = 0;
+    let currentAudio = null;
 
-    const nameDisplay = document.getElementById('track-name');
-    const timeDisplay = document.getElementById('track-time');
+    /* ---------- DOM ---------- */
+    const nameEl   = document.getElementById('track-name');
+    const timeEl   = document.getElementById('track-time');
+    const playBtn  = document.getElementById('playPauseBtn');
+    const prevBtn  = document.getElementById('prevBtn');
+    const nextBtn  = document.getElementById('nextBtn');
+    const rewBtn   = document.getElementById('rewindBtn');
+    const ffwdBtn  = document.getElementById('ffwdBtn');
+    const visPlayer= document.getElementById('visiblePlayer');
 
-    tracks.forEach(track => {
-      const audio = document.getElementById(track.id);
+    /* ---------- HELPERS ---------- */
+    const formatTime = s => {
+      const m = Math.floor(s / 60);
+      const secs = Math.floor(s % 60).toString().padStart(2, '0');
+      return `${m}:${secs}`;
+    };
 
-      audio.addEventListener('play', () => {
-        nameDisplay.textContent = track.name;
+    const loadTrack = idx => {
+      if (currentAudio) currentAudio.pause();
+      currentIdx = (idx + playlist.length) % playlist.length;
+      const track = playlist[currentIdx];
+
+      // create a fresh audio element for the current track
+      currentAudio = new Audio(track.src);
+      currentAudio.preload = 'metadata';
+
+      // sync UI
+      nameEl.textContent = track.name;
+      timeEl.textContent = `– 0:00`;
+      playBtn.textContent = '▶';
+
+      // events
+      currentAudio.addEventListener('timeupdate', () => {
+        timeEl.textContent = `– ${formatTime(currentAudio.currentTime)}`;
       });
-
-      audio.addEventListener('pause', () => {
-        nameDisplay.textContent = 'Paused';
+      currentAudio.addEventListener('ended', () => {
+        playBtn.textContent = '▶';
+        nameEl.textContent = 'None';
+        timeEl.textContent = '– 0:00';
+        loadNext();               // auto-advance
       });
+      currentAudio.addEventListener('play', () => playBtn.textContent = '⏸');
+      currentAudio.addEventListener('pause',() => playBtn.textContent = '▶');
 
-      audio.addEventListener('ended', () => {
-        nameDisplay.textContent = 'None';
-        timeDisplay.textContent = '– 0:00';
-      });
+      // optional: mirror to the visible native player
+      visPlayer.src = track.src;
+    };
 
-      audio.addEventListener('timeupdate', () => {
-        const minutes = Math.floor(audio.currentTime / 60);
-        const seconds = Math.floor(audio.currentTime % 60).toString().padStart(2, '0');
-        timeDisplay.textContent = `– ${minutes}:${seconds}`;
-      });
-    });
+    const togglePlayPause = () => {
+      if (!currentAudio) return;
+      if (currentAudio.paused) currentAudio.play();
+      else currentAudio.pause();
+    };
+    const loadPrev = () => loadTrack(currentIdx - 1);
+    const loadNext = () => loadTrack(currentIdx + 1);
+    const rewind = () => { if (currentAudio) currentAudio.currentTime = Math.max(0, currentAudio.currentTime - 10); };
+    const ffwd   = () => { if (currentAudio) currentAudio.currentTime = Math.min(currentAudio.duration, currentAudio.currentTime + 10); };
+
+    /* ---------- BUTTONS ---------- */
+    playBtn.addEventListener('click', togglePlayPause);
+    prevBtn.addEventListener('click', loadPrev);
+    nextBtn.addEventListener('click', loadNext);
+    rewBtn.addEventListener('click', rewind);
+    ffwdBtn.addEventListener('click', ffwd);
+
+    /* ---------- START ---------- */
+    loadTrack(0);          // load first track on page load
   </script>
-
 </body>
 </html>
